@@ -40,6 +40,8 @@ SourceTail.prototype = {
             return;
         }
 
+        logger.debug('Saving position: ' + this._position);
+
         FS.writeFile(this._positionFile, '' + this._position);
         this._lastSavedPosition = this._position;
     },
@@ -63,11 +65,15 @@ SourceTail.prototype = {
         var fromBeginning = this._isSavingPosition();
         var me = this;
 
+        const realFile = FS.realpathSync(this.file);
 
-        var tail = new Tail(this.file, {
+        if (realFile !== this.file) {
+            logger.debug('Resolved symbolic link "' + this.file + '" to "' + realFile + '"');
+        }
+
+        var tail = new Tail(realFile, {
             fromBeginning: fromBeginning
         });
-
 
         tail.on("line", function(data) {
             if (me._currentPosition < me._position) {

@@ -1,6 +1,7 @@
 const Q = require('q');
 const K8S = require('kubernetes-client');
 const logger = require('../../lib/logger')(__filename);
+const _ = require('lodash');
 
 const TTL = {
     ONE_HOUR: 3600 * 1000,
@@ -21,17 +22,21 @@ function cached(id, ttl, callback) {
             delete Cache[id];
         }, ttl);
     }
+
+    return Cache[id];
 }
 
 /**
  * Parses kubernetes log filename into its components
- * Example: dexi-firewall-d9jxq_default_dexi-firewall-b0e08c32d3ae3536d701009cc08ec362ea11904679fbee14e89441bc44885d5c.log
+ * Example: /var/log/containers/dexi-firewall-d9jxq_default_dexi-firewall-b0e08c32d3ae3536d701009cc08ec362ea11904679fbee14e89441bc44885d5c.log
  * @param file
  */
 function parseFileName(file) {
-    return cached('parseFileName:' + file, TTL.ONE_HOUR,
-        function() {
-        file = file.substr(0, -4); //Cut off .log
+    return cached('parseFileName:' + file, TTL.ONE_HOUR, function() {
+        var lastSlashIx = file.lastIndexOf('/');
+        file = file.substr(lastSlashIx + 1);
+
+        file = file.substr(0, file.length - 4); //Cut off .log
         var parts = file.split(/_/g);
 
         //parts[0] = dexi-firewall-d9jxq
@@ -106,6 +111,8 @@ function getPod(fileNameComponents) {
                     return;
                 }
 
+                logger.log('Resolved pod: ' + fileNameComponents.podName + ' in namespace ' + fileNameComponents.namespace);
+
                 resolve(podInfo);
             });
         });
@@ -140,6 +147,10 @@ function getOwner(resource) {
     var ownerRef = resource.metadata.ownerReferences[0]; //We just take the first
 
     var cacheId = 'owner:' + [ownerRef.kind,ownerRef.name].join('/');
+
+    if (logger.isDebug()) {
+        logger.debug('Looking up owner for resource: ' + resource.metadata.name + ': ' + ownerRef.kind + '/' + ownerRef.name);
+    }
 
     return cached(cacheId, TTL.ONE_HOUR, function() {
         var config = K8S.config.getInCluster();
@@ -189,6 +200,8 @@ function getOwner(resource) {
                     return;
                 }
 
+                logger.log('Resolved owner: ' + ownerRef.kind + '/' + ownerName + ' in namespace ' + namespaceId);
+
                 if (hasOwner(result)) {
                     //Recurse till we the true owner
                     resolve(getOwner(result));
@@ -209,7 +222,7 @@ function getOwner(resource) {
 function getImageFromPod(pod, containerName) {
     if (!pod ||
         !pod.status ||
-        pod.status.containerStatuses) {
+        !pod.status.containerStatuses) {
         return null;
     }
 
@@ -249,6 +262,10 @@ function readLine(file, line, position) {
     var podName = fileNameComponents.podName;
     var dockerImage = null;
 
+    if (logger.isDebug()) {
+        logger.debug('Parsing k8s container log for pod: ' + fileNameComponents.podName + ' in namespace ' + fileNameComponents.namespace);
+    }
+
     return getPod(fileNameComponents).then(function(result) {
         pod = result;
         if (pod && pod.metadata) {
@@ -256,6 +273,10 @@ function readLine(file, line, position) {
         }
 
         dockerImage = getImageFromPod(pod, fileNameComponents.containerName);
+
+        if (logger.isDebug()) {
+            logger.debug('Found docker image for container: ' + fileNameComponents.containerName + ': ' + dockerImage);
+        }
 
         return getOwner(pod);
     }).then(function(result) {

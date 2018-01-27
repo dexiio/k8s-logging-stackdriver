@@ -10,6 +10,7 @@ There is some hard-coded configuration for sources and targets within the applic
 ## Logging
 ```
 LOG_TO_FILE                     # If set the application will log to a file instead of std out. Should be enabled to avoid recursion in error logging.
+FILE_EXCLUDE                    # If set excludes all files that contains the string. 
 ```
 
 ## Stackdriver variables

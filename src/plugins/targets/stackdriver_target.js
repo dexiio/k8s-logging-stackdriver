@@ -66,8 +66,12 @@ function getLogger(name) {
                 }, WRITE_DELAY);
             },
             append: function(metadata, log) {
-                this.pending(this.logger.entry(metadata, log));
-                this.maybeFlush();
+                try {
+                    this.pending.push(this.logger.entry(metadata, log));
+                    this.maybeFlush();
+                } catch(e) {
+                    logger.error('Failed to add log entry: ' + e.stack);
+                }
             },
             flush: function() {
                 var chunk = this.pending;
@@ -127,7 +131,7 @@ function appendK8SContainerLog(id, file, logEntry) {
             'container.googleapis.com/pod_name':  logEntry.kubernetes.podName,
             'container.googleapis.com/stream':  logEntry.log.stream || 'stdout'
         },
-        timestamp: logEntry.log.time, //Must be "2018-01-27T14:21:38.090293793Z"
+        timestamp: new Date(logEntry.log.time), //Must be "2018-01-27T14:21:38.090293793Z"
         resource: {
             type: 'container',
             labels: {

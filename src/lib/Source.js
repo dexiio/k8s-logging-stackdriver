@@ -17,12 +17,7 @@ Source.prototype = {
     _watchForChanges: function() {
         this._stopWatching();
         var me = this;
-        this._watcher = FS.watch(this.config.baseDir, function(err) {
-            if (err) {
-                logger.error('Failed to watch base dir "' + me.config.baseDir + '": ' + err);
-                return;
-            }
-
+        this._watcher = FS.watch(this.config.baseDir, function() {
             me.refresh();
         });
     },
@@ -41,20 +36,22 @@ Source.prototype = {
     },
     _handleLineFromFile: function(file, line, position) {
         var me = this;
-        return Q(this.config.handler.readLine(file, line, position)).then(function(logEntry) {
+
+        logger.debug('Reading line position: ' + position);
+
+        Q(this.config.handler.readLine(file, line, position)).then(function(logEntry) {
 
             if (me.config.addons) {
                 _.extend(logEntry, me.config.addons);
             }
 
-            var promises = [];
-
             _.forEach(me.config.targets, function(target, id) {
-                promises.push(Q(target.handler.appendLog(id, file, logEntry)));
+                target.handler.appendLog(id, file, logEntry)
             });
 
-            return Q.allSettled(promises);
-        });
+        }).catch(function(err) {
+            logger.error("Failed to read line: " + err.stack);
+        }).done();
     },
     _handleErrorFromFile: function(file, error) {
         logger.error('Got error while tailing file "' + file + '": ' + error);
@@ -83,6 +80,11 @@ Source.prototype = {
         var removedFiles = _.keys(this._tails);
 
         files.forEach(function(file) {
+            if (process.env.FILE_EXCLUDE &&
+                file.indexOf(process.env.FILE_EXCLUDE) > -1) {
+                return;
+            }
+
             if (!this._tails[file]) {
                 this._addTail(file);
             }
