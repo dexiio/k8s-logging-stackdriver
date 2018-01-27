@@ -17,7 +17,12 @@ Source.prototype = {
     _watchForChanges: function() {
         this._stopWatching();
         var me = this;
-        this._watcher = FS.watch(this.config.baseDir, function() {
+        this._watcher = FS.watch(this.config.baseDir, function(err) {
+            if (err) {
+                logger.error('Failed to watch base dir "' + me.config.baseDir + '": ' + err);
+                return;
+            }
+
             me.refresh();
         });
     },
@@ -52,11 +57,16 @@ Source.prototype = {
         });
     },
     _handleErrorFromFile: function(file, error) {
-        //Ignore for now
+        logger.error('Got error while tailing file "' + file + '": ' + error);
     },
     _addTail: function(file) {
-        this._tails[file] = new SourceTail(this, file);
-        this._tails[file].start();
+        try {
+            var tail = new SourceTail(this, file);
+            tail.start();
+            this._tails[file] = tail;
+        } catch (err) {
+            logger.error('Failed to start tail on file "' + file + '": ' + err);
+        }
     },
     _removeTail: function(file) {
         if (!this._tails[file]) {
@@ -85,11 +95,15 @@ Source.prototype = {
         }, this);
     },
     start: function() {
+        logger.log('Starting source: ' + this.config.name);
         this._watchForChanges();
         this.refresh();
     },
     stop: function() {
+        logger.log('Stopping source: ' + this.config.name);
+
         this._stopWatching();
+
 
         var allTails = _.keys(this._tails);
 

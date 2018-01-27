@@ -74,7 +74,9 @@ function getLogger(name) {
                 this.pending = [];
                 if (chunk.length > 0) {
                     this.lastWrite = Date.now();
-                    return this.logger.write(chunk);
+                    return this.logger.write(chunk).catch(function(err) {
+                        logger.warn('Failed to flush ' + chunk.length + ' chunks to stackdriver:' + err);
+                    });
                 }
             }
         }

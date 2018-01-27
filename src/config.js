@@ -1,6 +1,7 @@
 module.exports = {
     "sources": [
         {
+            name: 'k8s_containers',
             position: {
                 //If true - stores file position and reads log files from top
                 // - if false just tails log files and gets new lines

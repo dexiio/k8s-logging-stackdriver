@@ -62,9 +62,12 @@ SourceTail.prototype = {
     _startTail: function() {
         var fromBeginning = this._isSavingPosition();
         var me = this;
-        var tail = new Tail(file, {
+
+
+        var tail = new Tail(this.file, {
             fromBeginning: fromBeginning
         });
+
 
         tail.on("line", function(data) {
             if (me._currentPosition < me._position) {
@@ -81,12 +84,15 @@ SourceTail.prototype = {
             me.source._handleErrorFromFile(me.file, err, me._position);
         });
 
+        logger.log('Started tailing file: ' + this.file);
+
         this._tail = tail;
     },
     _stopTail: function() {
         if (this._tail) {
             this._tail.unwatch();
             this._tail = null;
+            logger.log('Stopped tailing file: ' + this.file);
         }
     },
     stop: function() {
