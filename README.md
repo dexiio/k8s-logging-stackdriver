@@ -3,6 +3,8 @@ Small node application that reads logs from k8s and sends them to stackdriver in
 
 Useful for hybrid k8s deployments to have all logs be in 1 place. 
 
+Note that this only forwards container logs to stackdriver - no kubernetes or system internals.
+
 # Config
 The logger is configured via environment variables to make it easier to configure using kubernetes. 
 There is some hard-coded configuration for sources and targets within the application itself in the config.js file. 
@@ -34,7 +36,9 @@ KUBERNETES_SERVICE_PORT         # The port for the kubernetes API - usually avai
 
 # Kubernetes
 
-The following YML file is an example of deploying this to an on-premise kubernetes cluster 
+The following YML file is an example of deploying this to an on-premise kubernetes cluster. 
+
+To deploy this on GKE simply remove the GCP credentials since those are provided by GKE in the environment variable GOOGLE_APPLICATION_CREDENTIALS
 
 **stackdriver-logger-ds.yml**
 ```
