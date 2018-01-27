@@ -31,3 +31,87 @@ GOOGLE_APPLICATION_CREDENTIALS  # Points to a service account json key which sho
 KUBERNETES_SERVICE_HOST         # The host for the kubernetes API - usually available within k8s clusters 
 KUBERNETES_SERVICE_PORT         # The port for the kubernetes API - usually available within k8s clusters
 ```
+
+# Kubernetes
+
+The following YML file is an example of deploying this to an on-premise kubernetes cluster 
+
+**stackdriver-logger-ds.yml**
+```
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: stackdriver-logger-auth-config
+  labels:
+    vendor: dexi
+data:
+  GCP-CREDENTIALS: |
+    ... content of a google service account json key file ...
+---
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: stackdriver-logger
+  labels:
+    vendor: dexi
+    app: stackdriver-logger
+spec:
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 100%
+  template:
+    metadata:
+      labels:
+        vendor: dexi
+        app: stackdriver-logger
+    spec:
+      containers:
+      - name: stackdriver-logger
+        image: dexi/k8s-logging-stackdriver:latest
+        imagePullPolicy: Always
+        env:
+        - name: FILE_EXCLUDE
+          value: "stackdriver-logger"
+        - name: GOOGLE_CLOUD_PROJECT
+          value: my-google-project-id
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /etc/gcp-credentials.json
+        - name: STACKDRIVER_ZONE
+          value: my-region-or-zone
+        - name: STACKDRIVER_CLUSTER
+          value: my-onpremise-cluster
+        - name: STACKDRIVER_RESOURCE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log
+        - name: varlibdockercontainers
+          mountPath: /var/lib/docker/containers
+        - name: gcp-credentials
+          mountPath: /etc/gcp-credentials.json
+          subPath: gcp-credentials.json
+      tolerations:
+      - key: "dexi.io/runner-group"
+        operator: "Exists"
+        effect: "NoExecute"
+      - key: "dexi.io/reserved"
+        operator: "Exists"
+        effect: "NoExecute"
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log
+      - name: varlibdockercontainers
+        hostPath:
+          path: /var/lib/docker/containers
+      - name: gcp-credentials
+        configMap:
+          name: stackdriver-logger-auth-config
+          items:
+          - key: GCP-CREDENTIALS
+            path: gcp-credentials.json
+
+```
