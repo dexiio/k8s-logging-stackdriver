@@ -126,7 +126,7 @@ function appendK8SContainerLog(id, file, logEntry) {
     const metadata = {
         severity: logEntry.log.severity || 'DEFAULT',
         labels: {
-            'compute.googleapis.com/resource_name':  process.env.STACKDRIVER_VM_ID,
+            'compute.googleapis.com/resource_name':  process.env.STACKDRIVER_RESOURCE_NAME,
             'container.googleapis.com/namespace_name':  logEntry.kubernetes.namespace,
             'container.googleapis.com/pod_name':  logEntry.kubernetes.podName,
             'container.googleapis.com/stream':  logEntry.log.stream || 'stdout'

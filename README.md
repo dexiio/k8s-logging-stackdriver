@@ -15,7 +15,7 @@ FILE_EXCLUDE                    # If set excludes all files that contains the st
 
 ## Stackdriver variables
 ```
-STACKDRIVER_VM_ID               # The name of the logging pod itself. 
+STACKDRIVER_RESOURCE_NAME       # The name of the logging pod itself. 
 STACKDRIVER_CLUSTER             # The name of the cluster within Google Stack Driver.
 STACKDRIVER_ZONE                # The name of the zone or region within Google Stack Driver.
 ```
