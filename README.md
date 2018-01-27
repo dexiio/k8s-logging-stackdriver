@@ -42,8 +42,6 @@ kind: ConfigMap
 apiVersion: v1
 metadata:
   name: stackdriver-logger-auth-config
-  labels:
-    vendor: dexi
 data:
   GCP-CREDENTIALS: |
     ... content of a google service account json key file ...
@@ -52,19 +50,12 @@ apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
   name: stackdriver-logger
-  labels:
-    vendor: dexi
-    app: stackdriver-logger
 spec:
   updateStrategy:
     type: RollingUpdate
     rollingUpdate:
       maxUnavailable: 100%
   template:
-    metadata:
-      labels:
-        vendor: dexi
-        app: stackdriver-logger
     spec:
       containers:
       - name: stackdriver-logger
@@ -93,13 +84,6 @@ spec:
         - name: gcp-credentials
           mountPath: /etc/gcp-credentials.json
           subPath: gcp-credentials.json
-      tolerations:
-      - key: "dexi.io/runner-group"
-        operator: "Exists"
-        effect: "NoExecute"
-      - key: "dexi.io/reserved"
-        operator: "Exists"
-        effect: "NoExecute"
       volumes:
       - name: varlog
         hostPath:
